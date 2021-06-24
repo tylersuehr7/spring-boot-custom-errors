@@ -4,11 +4,12 @@ import org.springframework.http.HttpHeaders
 import org.springframework.http.HttpStatus
 import org.springframework.http.ResponseEntity
 import org.springframework.web.bind.annotation.ControllerAdvice
+import org.springframework.web.bind.annotation.ExceptionHandler
+import org.springframework.web.bind.annotation.ResponseStatus
 import org.springframework.web.bind.annotation.RestController
 import org.springframework.web.context.request.ServletWebRequest
 import org.springframework.web.context.request.WebRequest
 import org.springframework.web.servlet.mvc.method.annotation.ResponseEntityExceptionHandler
-import javax.servlet.http.HttpServletRequest
 import kotlin.reflect.full.findAnnotation
 import kotlin.reflect.full.hasAnnotation
 
@@ -20,6 +21,20 @@ import kotlin.reflect.full.hasAnnotation
 @RestController
 @ControllerAdvice
 internal class ErrorController : ResponseEntityExceptionHandler() {
+    /**
+     * Handle base exception class.
+     * Basically handles any exception that has not been already handled.
+     */
+    @ExceptionHandler(Exception::class)
+    fun handleUnknownException(cause: Exception, request: WebRequest): ResponseEntity<Any> {
+        // Parse the http status from exception
+        var status: HttpStatus = HttpStatus.INTERNAL_SERVER_ERROR
+        if (cause::class.hasAnnotation<ResponseStatus>()) {
+            status = cause::class.findAnnotation<ResponseStatus>()!!.value
+        }
+        return handleExceptionInternal(cause, null, HttpHeaders.EMPTY, status, request)
+    }
+
     override fun handleExceptionInternal(
         ex: Exception,
         body: Any?,
